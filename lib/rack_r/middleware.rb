@@ -2,6 +2,8 @@ require 'ostruct'
 require 'yaml'
 require 'erb'
 
+require 'csv'
+
 module RackR
   class Middleware < Struct.new :app, :options
 
@@ -9,7 +11,9 @@ module RackR
       @env = env
       return call_app unless config.enabled
       if get? and md = match_path
-        process(md.to_a.last)
+        key = md.to_a.last
+        return [200, {}, ['RackR OK.']] if key.empty?
+        process key
       else
         extract
       end
@@ -28,7 +32,7 @@ module RackR
         while md = body.match(node_regex)
           tempdir = temp_dir
           key = File.basename(tempdir)
-          r_script = config.r_header + md.to_a.last
+          r_script = ERB.new(config.r_header).result(binding) + md.to_a.last
           write_file(File.join(tempdir, config.r_file), r_script)
           body.sub!(node_regex, ajaxer(key))
         end
@@ -41,21 +45,20 @@ module RackR
     def process(key)
       path = temp_dir(key)
       return call_app unless File.directory?(path) # TODO render error msg
-      exec_r_script(config.r_file, path)
+      time = exec_r_script(config.r_file, path)
       files = Dir.entries(path).sort
       # build body
       body = [ config.html.prefix ]
       files.each do |file|
         config.templates.each do |template|
           if file =~ Regexp.new(template['pattern'], Regexp::IGNORECASE)
-            url = "#{config.public_url}/#{file}"
             src = File.join(path, file)
-            dst = File.join(public_path, file)
-            FileUtils.cp(src, dst)
+            eval(template['process']) unless template['process'].nil?
             body << ERB.new(template['template']).result(binding)
           end
         end
       end
+      # TODO remove temp dir
       body << config.html.suffix
       [ 200, { "Content-Type" => "text/html" }, body ]
     end
@@ -82,7 +85,7 @@ module RackR
       path_info.match(path_regex)
     end
 
-    def exec_r_script(file, path=nil) # TODO track time
+    def exec_r_script(file, path=nil)
       cmd = path.nil? ? "R CMD BATCH #{file}" :
         "(cd #{path} && R CMD BATCH #{file})"
       %x[#{cmd}]
@@ -111,12 +114,16 @@ module RackR
       ::File.read(__FILE__).gsub(/.*__END__\n/m, '')
     end
 
+    def config_path
+      options[:config].tap do |path|
+        raise "no config path given" unless path
+      end
+    end
+
     def config
       return @config unless @config.nil?
-      path = options[:config]
-      raise "no config path given" unless path
-      write_file(path, default_config) unless ::File.exist?(path)
-      @config = deep_ostruct(::File.open(path) { |yf| YAML::load(yf) })
+      write_file(config_path, default_config) unless ::File.exist?(config_path)
+      @config = deep_ostruct(::File.open(config_path) { |yf| YAML::load(yf) })
     end
 
     private
@@ -135,7 +142,6 @@ module RackR
 end
 
 __END__
----
 # RackR -- process R on the fly
 # RackR depends on jQuery >= 1.4.4
 #
@@ -149,27 +155,61 @@ public_url:  /system/rack-r
 temp:
   dir:       /tmp
   prefix:    rr_
-r_file:      script.r
+r_file:      script.R
 r_header: |
-  # connect to database
-  db <- 'code goes here'
+  # modify this header in rack-r config file
+  library('yaml')
+  dbconf <- yaml.load_file('<%= Rails.root %>/config/database.yml')
+  dbname <- dbconf$production$database
+  # TODO connect to database with rodbc or dbi
+  # db <- rodbc.connect(dbname)
 ajaxer: |
-  <div class='rack_r' id='<%= key %>'>Processing R (<%= key %>)&ellipsis;</div>
+  <div class='rack_r' id='<%= key %>'>Processing R...</div>
   <script type='text/javascript'>
     var url = '<%= config.url_scope %>/<%= key %>';
-    $.ajax(url, update: '<%= key %>');
+    $.ajax(url, { success: function(data) { $('#<%= key %>').html(data); } });
   </script>
 html:
-  prefix:    <div class='rack_r'>
+  prefix:    <div class='rack_r_out'>
   suffix:    </div>
-node_regex:  <script\s+type=['"]text/r['"]\s*>(.*)</script>
 templates:
+  - pattern: .svg$
+    process: |
+      svg = File.read(src)
+    template: |
+      <%= svg %>
   - pattern: .(jpg|jpeg|png)$
+    process: |
+      # TODO build dst with key, otherwise may lead to undesired results
+      dst = File.join(public_path, file)
+      FileUtils.cp(src, dst)
+      url = "#{config.public_url}/#{file}"
     template: |
       <img src='<%= url %>' />
   - pattern: .csv$
+    process: |
+      table = CSV.read(src)
+      # TODO build dst with key, otherwise may lead to undesired results
+      dst = File.join(public_path, file)
+      FileUtils.cp(src, dst)
+      url = "#{config.public_url}/#{file}"
     template: |
       <a href='<%= url %>'><%= file %></a>
+      <table>
+        <% table.each do |row| %>
+          <tr>
+            <% row.each do |col| %>
+              <td><%= col %></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </table>
+  - pattern: .Rout$
+    process: |
+      rout = File.read(src)
+    template: |
+      <pre><%= rout %></pre>
+node_regex:  <script\s+type=['"]text/r['"]\s*>(.*?)</script>
 #
 # uncomment the following two lines, if your project
 # doesn't use jquery already
