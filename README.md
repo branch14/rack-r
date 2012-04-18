@@ -60,6 +60,10 @@ database it is a goog udea to install Jeremy Stephens' YAML for R.
     wget http://cran.r-project.org/src/contrib/yaml_2.1.4.tar.gz
     R CMD INSTALL yaml_2.1.4.tar.gz
 
+SQLite
+
+    wget http://cran.r-project.org/src/contrib/RSQLite_0.11.1.tar.gz
+    R CMD INSTALL RSQLite_0.11.1.tar.gz
 
 Trouble shooting
 ----------------

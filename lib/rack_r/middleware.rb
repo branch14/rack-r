@@ -158,11 +158,14 @@ temp:
 r_file:      script.R
 r_header: |
   # modify this header in rack-r config file
-  library('yaml')
-  dbconf <- yaml.load_file('<%= Rails.root %>/config/database.yml')
-  dbname <- dbconf$production$database
-  # TODO connect to database with rodbc or dbi
-  # db <- rodbc.connect(dbname)
+  library(yaml)
+  library(DBI)
+  library(RSQLite)
+  root <- '<%= Rails.root %>'
+  dbconf <- yaml.load_file(paste(root, '/config/database.yml', sep=''))
+  dbfile <- paste(root, '/', dbconf$development$database, sep='')
+  drv <- dbDriver("SQLite")
+  con <- dbConnect(drv, dbname=dbfile)
 ajaxer: |
   <div class='rack_r' id='<%= key %>'>Processing R...</div>
   <script type='text/javascript'>

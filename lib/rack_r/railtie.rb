@@ -2,7 +2,9 @@ require 'rack_r/middleware'
 
 module RackR
   
-  case Rails.version.to_i
+  major, minor, patch = Rails.version.split('.').map { |s| s.to_i }
+
+  case major
   when 2
     Rails.configuration.middleware.use RackR::Middleware,
       :config => File.expand_path('config/rack-r.yml', RAILS_ROOT)
@@ -16,7 +18,7 @@ module RackR
     end
 
   else
-    raise "Unknown Rails version"
+    raise "Unknown Rails version #{Rails.version}"
   end
 
 end
