@@ -62,8 +62,13 @@ Alternatively you can use the `rodbc` package.
 
     apt-get install r-cran-rodbc 
 
+The RackR-Header is a pice of R code that gets prepended to every R
+script which is processed by RackR. Idealy it will read you database
+config and provide a seperate connection to your database via a DBI
+compatible `con` object.
+
 If you want RackR to automatically connect R script to yoyr Rails
-database it is a goog udea to install Jeremy Stephens' YAML for R.
+database it is a good idea to install Jeremy Stephens' YAML for R.
 
     wget http://cran.r-project.org/src/contrib/yaml_2.1.4.tar.gz
     R CMD INSTALL yaml_2.1.4.tar.gz
