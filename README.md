@@ -39,6 +39,10 @@ Put the following in your Gemfile and run `bundle install` or let
 
     gem 'rack-r', :require => 'rack_r'
 
+In Rails 3.2 you will have to put this somewhere
+
+    require 'rack_r/railtie'
+
 
 Using RackR outside of Rails
 ----------------------------
@@ -52,7 +56,11 @@ Dependencies
 
 These instructions are for Debian Squeeze. Install R.
 
-    apt-get install r-base r-cran-rodbc r-cran-dbi
+    apt-get install r-base r-cran-dbi
+
+Alternatively you can use the `rodbc` package.
+
+    apt-get install r-cran-rodbc 
 
 If you want RackR to automatically connect R script to yoyr Rails
 database it is a goog udea to install Jeremy Stephens' YAML for R.
@@ -60,10 +68,18 @@ database it is a goog udea to install Jeremy Stephens' YAML for R.
     wget http://cran.r-project.org/src/contrib/yaml_2.1.4.tar.gz
     R CMD INSTALL yaml_2.1.4.tar.gz
 
-SQLite
+### SQLite
 
     wget http://cran.r-project.org/src/contrib/RSQLite_0.11.1.tar.gz
     R CMD INSTALL RSQLite_0.11.1.tar.gz
+
+### MySQL
+
+    apt-get install r-cran-rmysql
+
+The whole RackR-Header is a work in progress, if you have to adjust it
+to your database config, please consider to contribute your addition.
+
 
 Trouble shooting
 ----------------
