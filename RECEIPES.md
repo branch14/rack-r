@@ -10,24 +10,6 @@ Boxplot the ages of users
     boxplot(users$age)
 
 
-Header which connects to Sqlite3 or MySQL
------------------------------------------
-
-    library(yaml)
-    library(DBI)
-    library(RSQLite)
-    library(RMySQL)
-    root <- '<%= Rails.root %>'
-    dbconf <- yaml.load_file(paste(root, '/config/database.yml', sep=''))$<%= Rails.env %>
-    if(dbconf$adapter=='sqlite3') {
-      dbfile <- paste(root, '/', dbconf$database, sep='')
-      drv <- dbDriver("SQLite")
-      con <- dbConnect(drv, dbname=dbfile)
-    } else if (dbconf$adapter=='mysql') {
-      con <- dbConnect(MySQL(), user=dbconf$username, dbname=dbconf$database)
-    }
-
-
 Output a html table of data
 ---------------------------
 
