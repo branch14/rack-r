@@ -160,21 +160,34 @@ r_header: |
   # modify this header in rack-r config file
   library(yaml)
   library(DBI)
-  library(RSQLite)
-  root <- '<%= Rails.root %>'
-  dbconf <- yaml.load_file(paste(root, '/config/database.yml', sep=''))
-  dbfile <- paste(root, '/', dbconf$development$database, sep='')
-  drv <- dbDriver("SQLite")
-  con <- dbConnect(drv, dbname=dbfile)
+  root <- '/home/phil/src/controlling'
+  dbconf <- yaml.load_file(paste(root, '/config/database.yml', sep=''))$development
+  connect <- function() {
+    if(dbconf$adapter=='sqlite3') {
+      library(RSQLite)
+      dbfile <- paste(root, '/', dbconf$database, sep='')
+      drv <- dbDriver("SQLite")
+      return(dbConnect(drv, dbname=dbfile))
+    } else if (dbconf$adapter=='mysql') {
+      library(RMySQL)
+      return(dbConnect(MySQL(), user=dbconf$username, dbname=dbconf$database))
+    }
+  }
+  getPapertrail <- function(model, id) {
+    sql <- paste("SELECT object FROM versions WHERE ",
+                 "item_type='", model, "' AND item_id='",
+                 id, "' AND event='update'", sep='')
+    connection <- connect()
+    result <- dbSendQuery(connection, sql)
+    rows <- fetch(result)
+    lapply(rows$object, yaml.load)
+  }
 ajaxer: |
   <div class='rack_r' id='<%= key %>'>Processing R...</div>
   <script type='text/javascript'>
     var url = '<%= config.url_scope %>/<%= key %>';
     $.ajax(url, { success: function(data) { $('#<%= key %>').html(data); } });
   </script>
-html:
-  prefix:    <div class='rack_r_out'>
-  suffix:    </div>
 templates:
   - pattern: .svg$
     process: |
@@ -189,15 +202,18 @@ templates:
       url = "#{config.public_url}/#{file}"
     template: |
       <img src='<%= url %>' />
-  - pattern: .csv$
+  - pattern: .download.csv$
     process: |
-      table = CSV.read(src)
       # TODO build dst with key, otherwise may lead to undesired results
       dst = File.join(public_path, file)
       FileUtils.cp(src, dst)
       url = "#{config.public_url}/#{file}"
     template: |
       <a href='<%= url %>'><%= file %></a>
+  - pattern: .table.csv$
+    process: |
+      table = CSV.read(src)
+    template: |
       <table>
         <% table.each do |row| %>
           <tr>
@@ -207,12 +223,23 @@ templates:
           </tr>
         <% end %>
       </table>
+  - pattern: .lazy.csv$
+    process: |
+      table = CSV.read(src)
+    template: |
+      <pre class="lazycsv"><%= table %></pre>
   - pattern: .Rout$
     process: |
       rout = File.read(src)
     template: |
       <pre><%= rout %></pre>
-node_regex:  <script\s+type=['"]text/r['"]\s*>(.*?)</script>
+node_regex: <script\s+type=['"]text/r['"]\s*>(.*?)</script>
+node_stanza:
+  prefix: <script type='text/r'>
+  suffix: </script>
+html:
+  prefix: <div class='rack_r_out'>
+  suffix: </div>
 #
 # uncomment the following two lines, if your project
 # doesn't use jquery already
