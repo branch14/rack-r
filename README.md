@@ -11,13 +11,13 @@ simple as rendering R code into your output. E.g.
     </script>
 
 RackR will pick this up on its way out and replace it with an empty
-container and some JavaScript code to perform an immediate async
-request for processing the R code.
+container and some JavaScript code to perform an immediate
+asynchronous request for processing the R code.
 
-RackR will answer to this reqyest with processing the R code in a temp
-directory, then searching this directory for displayable content and
-finally return the html code for display. So the example above will
-eventually turn into something like this.
+RackR will answer to this request with processing the R code in a
+temporary directory, then searching this directory for displayable
+content, and finally return the html code for display. So the example
+above will eventually turn into something like this:
 
     <div>
      <img src='/path/to/sinus.png' />
@@ -26,9 +26,9 @@ eventually turn into something like this.
      </pre>
     </div>
 
-Almost everything can conveniently be configured in a YAML file. RackR
-will create a sample config file in `config/rack-r.yml` or any other
-path given.
+**Almost everything can conveniently be configured in a YAML file.**
+RackR will create a sample config file in `config/rack-r.yml` or any
+other path given.
 
 
 Install in Rails
@@ -51,6 +51,30 @@ Using RackR outside of Rails
     use RackR::Middleware, :config => 'path/to/config/rack-r.yml'
 
 
+The RackR-Header
+----------------
+
+The RackR-Header is a piece of R code that gets prepended to every R
+script, which is processed by RackR. Ideally it will read your
+database config and provide a seperate connection to your database via
+a DBI compatible object. This is currently provided by a R function
+called `connect`.
+
+If you want RackR to automatically connect R scripts to your Rails
+database it is a good idea to install Jeremy Stephens' YAML for R, as
+mentioned in Dependencies.
+
+Additionally there is a function `getPapertrail` which takes a
+classname and an id, and retrieves previous versions of database entries
+(stored by the popular versioning library
+[Papertrail](https://github.com/airblade/paper_trail/)) in form of a
+proper R dataframe.
+
+The whole RackR-Header is a work in progress, if you have to adjust it
+to your database config and/or end up writing helper functions like
+`getPapertrail`, please consider to contribute your additions.
+
+
 Dependencies
 ------------
 
@@ -58,17 +82,11 @@ These instructions are for Debian Squeeze. Install R.
 
     apt-get install r-base r-cran-dbi
 
-Alternatively you can use the `rodbc` package.
+Alternatively to `dbi` you can use the `rodbc` package.
 
     apt-get install r-cran-rodbc 
 
-The RackR-Header is a pice of R code that gets prepended to every R
-script which is processed by RackR. Idealy it will read you database
-config and provide a seperate connection to your database via a DBI
-compatible `con` object.
-
-If you want RackR to automatically connect R script to yoyr Rails
-database it is a good idea to install Jeremy Stephens' YAML for R.
+### YAML
 
     wget http://cran.r-project.org/src/contrib/yaml_2.1.4.tar.gz
     R CMD INSTALL yaml_2.1.4.tar.gz
@@ -81,9 +99,6 @@ database it is a good idea to install Jeremy Stephens' YAML for R.
 ### MySQL
 
     apt-get install r-cran-rmysql
-
-The whole RackR-Header is a work in progress, if you have to adjust it
-to your database config, please consider to contribute your addition.
 
 
 Trouble shooting
