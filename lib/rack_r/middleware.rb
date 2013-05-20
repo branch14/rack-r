@@ -10,6 +10,8 @@ module RackR
     def call(env)
       @env = env
       return call_app unless config.enabled
+      return call_app if config.skip_pattern &&
+        path_info.match(config.skip_pattern)
       if get? and md = match_path
         key = md.to_a.last
         return [200, {}, ['RackR OK.']] if key.empty?
