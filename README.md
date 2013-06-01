@@ -34,14 +34,30 @@ other path given.
 Install in Rails
 ----------------
 
-Put the following in your Gemfile and run `bundle install` or let
-[Guard](https://github.com/guard/guard-bundler) kick in.
+Put the following in your Gemfile and run `bundle`
 
-    gem 'rack-r', :require => 'rack_r'
+    gem 'rack-r'
 
-In Rails 3.2 you will have to put this somewhere
 
-    require 'rack_r/railtie'
+Use the TemplateHandler
+-----------------------
+
+You can create partials with the extension `.rackr` which will
+automatically be picked up by the middleware.
+
+    # render the file `_partial_with_r_code_inside.html.rackr`
+    render :partial => 'partial_with_r_code_inside'
+
+
+Combine R with HAML
+-------------------
+
+In HAML you can combine R and Ruby via the erb filter
+
+    :erb
+      sql = '<%= SomeModel.select(:value).to_sql %>'
+      data = connect().dbGetQuery(sql)
+      boxplot(data$value)
 
 
 Using RackR outside of Rails
@@ -86,10 +102,14 @@ Alternatively to `dbi` you can use the `rodbc` package.
 
     apt-get install r-cran-rodbc 
 
+Install additional packages from CRAN. Note: Only the latest version
+is available. Check CRAN for the latest version.
+
 ### YAML
 
     wget http://cran.r-project.org/src/contrib/yaml_2.1.4.tar.gz
     R CMD INSTALL yaml_2.1.4.tar.gz
+
 
 ### SQLite
 
