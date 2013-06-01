@@ -56,10 +56,10 @@ In HAML you can combine R and Ruby via the erb filter
 
     :erb
       sql = '<%= SomeModel.select(:value).to_sql %>'
-      data = connect().dbGetQuery(sql)
+      data = dbGetQuery(connect(), sql)
       boxplot(data$value)
 
-
+1
 Using RackR outside of Rails
 ----------------------------
 

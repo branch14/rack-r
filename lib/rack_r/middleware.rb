@@ -9,6 +9,8 @@ module RackR
 
     def call(env)
       @env = env
+      # reload config per request
+      @config = nil unless config.reload
       return call_app unless config.enabled
       return call_app if config.skip_pattern &&
         path_info.match(config.skip_pattern)
@@ -151,20 +153,23 @@ __END__
 # without a restart of your app
 #
 enabled:     true
+reload:      false
 url_scope:   /rack-r
 public_path: public/system/rack-r
 public_url:  /system/rack-r
+r_file:      script.R
 temp:
   dir:       /tmp
   prefix:    rr_
-r_file:      script.R
 
 r_header: |
   # modify this header in rack-r config file
   library(yaml)
   library(DBI)
-  root <- '/home/phil/src/controlling'
+
+  root <- '<%= Dir.pwd %>'
   dbconf <- yaml.load_file(paste(root, '/config/database.yml', sep=''))$development
+
   connect <- function() {
     if(dbconf$adapter=='sqlite3') {
       library(RSQLite)
@@ -176,6 +181,7 @@ r_header: |
       return(dbConnect(MySQL(), user=dbconf$username, dbname=dbconf$database))
     }
   }
+
   getPapertrail <- function(model, id) {
     sql <- paste("SELECT object FROM versions WHERE ",
                  "item_type='", model, "' AND item_id='",
