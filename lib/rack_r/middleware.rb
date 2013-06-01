@@ -158,6 +158,7 @@ temp:
   dir:       /tmp
   prefix:    rr_
 r_file:      script.R
+
 r_header: |
   # modify this header in rack-r config file
   library(yaml)
@@ -170,7 +171,7 @@ r_header: |
       dbfile <- paste(root, '/', dbconf$database, sep='')
       drv <- dbDriver("SQLite")
       return(dbConnect(drv, dbname=dbfile))
-    } else if (dbconf$adapter=='mysql') {
+    } else if (dbconf$adapter=='mysql2') {
       library(RMySQL)
       return(dbConnect(MySQL(), user=dbconf$username, dbname=dbconf$database))
     }
@@ -184,19 +185,22 @@ r_header: |
     rows <- fetch(result)
     lapply(rows$object, yaml.load)
   }
+
 ajaxer: |
   <div class='rack_r' id='<%= key %>'>Processing R...</div>
   <script type='text/javascript'>
     var url = '<%= config.url_scope %>/<%= key %>';
     $.ajax(url, { success: function(data) { $('#<%= key %>').html(data); } });
   </script>
+
 templates:
   - pattern: .svg$
     process: |
       svg = File.read(src)
     template: |
       <%= svg %>
-  - pattern: .(jpg|jpeg|png)$
+
+  - pattern: .(jpe?g|png)$
     process: |
       # TODO build dst with key, otherwise may lead to undesired results
       dst = File.join(public_path, file)
@@ -204,6 +208,7 @@ templates:
       url = "#{config.public_url}/#{file}"
     template: |
       <img src='<%= url %>' />
+
   - pattern: .download.csv$
     process: |
       # TODO build dst with key, otherwise may lead to undesired results
@@ -212,6 +217,7 @@ templates:
       url = "#{config.public_url}/#{file}"
     template: |
       <a href='<%= url %>'><%= file %></a>
+
   - pattern: .table.csv$
     process: |
       table = CSV.read(src)
@@ -225,16 +231,19 @@ templates:
           </tr>
         <% end %>
       </table>
-  - pattern: .lazy.csv$
+
+  - pattern: .js.csv$
     process: |
       table = CSV.read(src)
     template: |
-      <pre class="lazycsv"><%= table %></pre>
+      <pre class="jscsv"><%= table %></pre>
+
   - pattern: .Rout$
     process: |
       rout = File.read(src)
     template: |
       <pre><%= rout %></pre>
+
 node_regex: <script\s+type=['"]text/r['"]\s*>(.*?)</script>
 node_stanza:
   prefix: <script type='text/r'>
@@ -242,7 +251,8 @@ node_stanza:
 html:
   prefix: <div class='rack_r_out'>
   suffix: </div>
-#
+# skip_pattern: "^/data"
+
 # uncomment the following two lines, if your project
 # doesn't use jquery already
 # javascripts:
